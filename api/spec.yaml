@@ -1,0 +1,47 @@
+openapi: "3.0.3"
+info:
+  description: "A test API for Go server with JWT"
+  version: "0.0.1"
+  title: "Test API"
+
+paths:
+  /unauthenticated:
+    get:
+      operationId: "unauthenticated"
+      summary: "An endpoint which does not require authentication."
+      description: "Returns \"Hello World!\""
+      responses:
+        "200":
+          description: "Hello World!"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /authenticated:
+    get:
+      operationId: "authenticated"
+      summary: "An endpoint which does require authentication."
+      description: "Returns \"Hello Authorised Citizens of the World!\""
+      security:
+        - JWTAuth: []
+      responses:
+        "200":
+          description: "Hello Authorised Citizens of the World!"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+components:
+  schemas:
+    Message:
+      type: "object"
+      properties:
+        message:
+          type: string
+          example: "Hello World!"
+
+  securitySchemes:
+    JWTAuth:
+      type: "http"
+      scheme: "bearer"

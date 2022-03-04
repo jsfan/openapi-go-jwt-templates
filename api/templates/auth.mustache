@@ -1,0 +1,68 @@
+{{>partial_header}}
+package {{packageName}}
+
+import (
+    "context"
+    "gopkg.in/square/go-jose.v2/jwt"
+    "net/http"
+    "strings"
+)
+
+type JWTLabel string
+
+const (
+    authHeader = "Authorization"
+    claimsContext JWTLabel = "JWT contents"
+
+    NoToken = "No bearer token found."
+    AuthorizationLineMalformed = "Authorization line was malformed."
+    AuthorizationNotBearer = "No bearer token in authorization."
+    JWTParseError = "JWT could not be parsed."
+    SignatureInvalid = "JWT signature is invalid."
+    ClaimsInvalid = "JWT claims are invalid."
+)
+
+// Auth is a middleware which validates a JWT and rejects unauthenticated access where appropriate.
+func Auth(inner http.Handler, keys interface{}, authRequired bool) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        bearerToken, ok := r.Header[authHeader]
+        if !ok {
+            if authRequired {
+                EncodeJSONResponse(Error401(NoToken), func(i int) *int { return &i }(http.StatusUnauthorized), w)
+                return
+            }
+            inner.ServeHTTP(w, r)
+            return
+        }
+        tokenParts := strings.SplitN(bearerToken[0], " ", 2)
+        if len(tokenParts) < 2 {
+            EncodeJSONResponse(Error401(AuthorizationLineMalformed), func(i int) *int { return &i }(http.StatusUnauthorized), w)
+            return
+        }
+        if strings.ToLower(tokenParts[0]) != "bearer" {
+            EncodeJSONResponse(Error401(AuthorizationNotBearer), func(i int) *int { return &i }(http.StatusUnauthorized), w)
+            return
+        }
+        token := tokenParts[1]
+
+        parsedJWT, err := jwt.ParseSigned(token)
+        if err != nil {
+            EncodeJSONResponse(Error401(JWTParseError), func(i int) *int { return &i }(http.StatusUnauthorized), w)
+            return
+        }
+        basicClaims := &jwt.Claims{}
+        claims := &JWTClaims{}
+        if err := parsedJWT.Claims(keys, &basicClaims, &claims); err != nil {
+            EncodeJSONResponse(Error401(SignatureInvalid), func(i int) *int { return &i }(http.StatusUnauthorized), w)
+            return
+        }
+
+        if err := ValidateClaims(basicClaims, claims); err != nil {
+            EncodeJSONResponse(Error401(ClaimsInvalid), func(i int) *int { return &i }(http.StatusUnauthorized), w)
+            return
+        }
+
+        ctx := context.WithValue(r.Context(), claimsContext, claims)
+        inner.ServeHTTP(w, r.WithContext(ctx))
+    })
+}

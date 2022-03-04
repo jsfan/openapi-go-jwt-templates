@@ -1,0 +1,44 @@
+{{>partial_header}}
+package {{packageName}}
+
+import (
+        "gopkg.in/square/go-jose.v2"
+        "gopkg.in/square/go-jose.v2/jwt"
+        "time"
+)
+
+type JWTClaims map[string]interface{}
+
+// AuthErrorResponse is used when the authentication middleware rejects access.
+// This response should be aligned with the response your OpenAPI configuration assigns to the HTTP status code 401.
+type AuthErrorResponse struct {
+        Message string
+}
+
+// ValidateClaims validates the token ensuring that it is not expired.
+// Add other expected values you want to validate as necessary.
+func ValidateClaims(claims *jwt.Claims, customClaims *JWTClaims) error {
+        expected := jwt.Expected{
+                Time: time.Now(),
+        }
+
+        // TODO: Add check for custom claims as necessary.
+
+        return claims.Validate(expected)
+}
+
+// Error401 returns the contents of the response to be sent when the middleware blocks access with status 401.
+// Message gives the reason why access was denied.
+func Error401(msg string) AuthErrorResponse {
+        // TODO: Adapt to your own custom error response
+        return AuthErrorResponse{
+                Message: msg,
+        }
+}
+
+// SetKeys returns the key used for validating the JWT signatures.
+func SetKeys(env interface{}) (interface{}, error) {
+    // TODO: Add your own logic for setting your keys.
+
+    return &jose.JSONWebKeySet{}, nil
+}

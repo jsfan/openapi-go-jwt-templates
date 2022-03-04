@@ -1,0 +1,19 @@
+generatorName: go-server
+inputSpec: api/spec.yaml
+templateDir: api/templates
+gitRepoId: change-this-to-your-repository-name
+gitUserId: change-this-to-your-github-account
+additionalProperties:
+  enumClassPrefix: false
+  featureCORS: false
+  hideGenerationTimestamp: true
+  packageName: rest
+  packageVersion: 0.0.1
+  router: mux
+  serverPort: 8080
+  sourceFolder: go
+files:
+  auth.mustache:
+    destinationFilename: "go/auth.go"
+  jwt.mustache:
+    destinationFilename: "go/jwt.go"
